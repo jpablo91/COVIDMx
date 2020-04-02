@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Estimacion de R Instantaneo</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/sandstone.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 61px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 66px;
+  margin-top: -66px;
+}
+.section h2 {
+  padding-top: 66px;
+  margin-top: -66px;
+}
+.section h3 {
+  padding-top: 66px;
+  margin-top: -66px;
+}
+.section h4 {
+  padding-top: 66px;
+  margin-top: -66px;
+}
+.section h5 {
+  padding-top: 66px;
+  margin-top: -66px;
+}
+.section h6 {
+  padding-top: 66px;
+  margin-top: -66px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Jose Pablo Gomez-Vazquez</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="https://jpablo91.github.io/">Quien es Pablo?</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    Contact
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="https://github.com/jpablo91">
+        <span class="fa fa-github"></span>
+         
+      </a>
+    </li>
+    <li>
+      <a href="https://www.linkedin.com/in/pablo-gomez-v-b19553129/">
+        <span class="fa fa-linkedin"></span>
+         
+      </a>
+    </li>
+    <li>
+      <a href="mailto:jpgo@ucdavis.edu">
+        <span class="fa fa-envelope"></span>
+         
+      </a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Estimacion de R Instantaneo</h1>
+
+</div>
+
+
+<p>En el <a href="Estimacion_R0.html">post anterior</a> examinamos como obtener el <span class="math inline">\(R_0\)</span> utilizando modelos compartamentales SIR, lo cual nos puede ayudar a estimar el impacto de la epidemia.<br />
+Ahora que ya han pasado algunos dias, contamos con mas informacion acerca del comportamiento de la enfermedad en el pais y podemos ver en una linea del tiempo (transquilos, no es otro grafico exponencial) el progreso de COVID en Mexico.<br />
+Los datos que utilizare fueron colectados por Gabriel Carranco basados en la informacion dada a conocer por el Gobierno Federal de México desglosada por entidad.</p>
+<p><strong>Cabe destacar que este analisis esta hecho con la informacion disponible de los casos, y puede estar sesgada a sobrerepresentar la mortalidad o subrepresentar el numero de casos</strong></p>
+<div id="vision-general-de-covid-en-mexico." class="section level1">
+<h1>Vision general de COVID en Mexico.</h1>
+<p>En la siguiente figura, podemos ver el incremento en numero de casos importados (rojo obscuro) y casos locales (rojo) estratificado por estado.</p>
+<p><img src="Estimaciones_R_Instantaneo_files/figure-html/unnamed-chunk-2-1.png" width="1152" /></p>
+<p>Podemos notar como en algunos estados como San Luis, Puebla y Jalisco los casos importados diagnosticados siguen en asenso, lo cual nos podria dar un indicio sobre como se estan llevando a cabo las recomendaciones sobre el movimiento accesando al estado. Por el contrario, otros estados como Tabasco y Michoacan muestran un incremento en el numero de casos locales diagnosticados, lo cual podria ser un indicador sobre el ingremento en la transmision local dentro del estado. En el siguiente mapa, se muestra la proporcion de casos locales por estado.</p>
+<p><img src="Estimaciones_R_Instantaneo_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>En la siguiente figura exploramos el incremento en el numero cumulativo de casos totales. Claramente la incidencia va en aumento en la mayoria de los estados. Cabe destacar que aunque las barras de los graficos parecen de la misma magnitud, las escalas del eje <em>y</em> son diferentes. La intensidad de las barras representan el numero total de casos en el estado.</p>
+<p><img src="Estimaciones_R_Instantaneo_files/figure-html/unnamed-chunk-4-1.png" width="576" /></p>
+<p>Otro de los indicadores que podemos utilizar para evaluar el impacto de la epidemia es la mortalidad. Como lo he mencionado anteriormente, la mortalidad estimada a partir de los casos tendera a estar inflada, ya que la enfermedad se presenta de manera sublclinica en muchos de los casos y no requiere hospitalizacion. A continuacion vemos un mapa en el cual la intensidad del color refleja la mortalidad bruta de la enfermedad, Cabe destacar que aunque algunos estados como Hidalgo, Durango y Morelos presentan una mortalidad alta, el numero total de infectados es mucho menor que otras ciudades mas grandes. Esto tambien puede ser un indicador de la necesidad de incrementar el numero de muestreos para asi poder detectar no solo a los pacientes que llegan a hospital en estado critico (wue son los que tenderan mas a padecer de la enfermedad).</p>
+<p><img src="Estimaciones_R_Instantaneo_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+</div>
+<div id="estimacion-de-r_0" class="section level1">
+<h1>Estimacion de <span class="math inline">\(R_0\)</span></h1>
+<p>Como lo discutimos en el post anterior, un indicador que nos ayuda a estimar la magnitud de las epidemias es el numero <span class="math inline">\(R_0\)</span>, el cual representa el numero de casos secundarios producidos. Anteriormente calculamos un <span class="math inline">\(R_0\)</span> para todo el periodo de la epidemia, lo cual nos da una idea de la magnitud de una manera global. Similar a <span class="math inline">\(R_0\)</span>, existe otro indicador de el numero de casos secundarios para el dia-a-dia (<span class="math inline">\(R_e\)</span>), esto nos puede ayudar a darle un seguimiento temporal a el impacto de la enfermedad. Existen varios metodos para calcular <span class="math inline">\(R_e\)</span>, a continuacion usaremos un metodo desarrollado por Anne Cori y extendido posteriormente por <a href="https://www.sciencedirect.com/science/article/pii/S1755436519300350?via%3Dihub">Thompson et al.</a>. Para esto utilizaremos el paquete de R <code>EpiEstim</code>. Uno de los principales parametros para estimar <span class="math inline">\(R_e\)</span> es el el intervalo serial (SI), el cual es el tiempo entre el inicio de los sintomas de cada caso y el incio de los sintomas de un caso secundario a este (en otras palabras es el tiempo entre casos). Tomaremos la distribucion de SI descrita por <a href="https://www.nejm.org/doi/full/10.1056/NEJMoa2001316">Li et. al</a>, en la cual se estimo una media de 7.5 dias con una desviacion estandard de 3.4 dias. Dado que aun desconocemos muchos aspectos de la enfermedad, introduciremos algunos parametros adicionales para permitir que el parametro SI tenga una variacion entre 2.3 y 8.4 usando una distribucion estandard con <span class="math inline">\(\sigma = 2\)</span>.</p>
+<p>En nuestrso resultados podemos observar el <span class="math inline">\(R_e\)</span> estimado en una linea del tiempo. Como mencionamos anteriormente, el objetivo para evitar que una enfermedad se convierta en epidemia es mantener el <span class="math inline">\(R_e\)</span> por debajo de uno (el cual esta marcado con una linea punteada). La linea de enmedio representa nuestra estimacion y el sombreado que la envelve es la incertidumbre de nuestra estimacion (nuestro verdadero valor podria estar en cualquier parte del area sombreada). Es importante destacar que los ejes estan en diferentes escalas, podemos que aunque el patron para Puebla y el Estado de Mexico es parecido, los valores para el Estado de Mexico podrian alcanzar hasta un <span class="math inline">\(R_e\)</span> de 6.</p>
+<p><img src="Estimaciones_R_Instantaneo_files/figure-html/unnamed-chunk-6-1.png" width="1344" /></p>
+<p>Suponiendo que el numero de casos reportados refleja con certeza la progresion de la enfermedad, nuestro analisis nos dice que la enfermedad va decreciendo en estados como Nuevo Leon, Jalisco y Yucatan. Para los estados de Nuevo Leon y Jalisco el <span class="math inline">\(R_e\)</span> se mantiene por debajo de la linea que marca el 1 y se debe mantener asi si queremos eliminar la transmision. En cambio en CDMX, estado de Mexico y Puebla vemos que hubo una decaida en el <span class="math inline">\(R_e\)</span> y ha vuelto a aumentaren los ultimos dias, recordemos que este analiss esta basado en el numero de individuos detectados y no necesariamente el numero total de infectados. El hecho de que el <span class="math inline">\(R_e\)</span> vaya en aumento, tambien podria reflejar el incremento en los esfuerzos de deteccion de la enfermedad.</p>
+<p>En resumen, algunas de estas herramientas podrian ser utilizadas para informar los lugares en los que la enfermedad va en asenso y otros lugares que necesitan mas esfuerzos en cuanto a la deteccion de la enfermedad.</p>
+</div>
+<div id="apendice" class="section level1">
+<h1>Apendice</h1>
+<p>Por ultimo, anexo el codigo por si se desea replicar el analisis. El codigo a continuacion describe lo realizado en este post y para acceder a los datos y darles el formato necesario en este analisis se puede seguir el codigo que se encuentra en este <a href="Code/Get_the_data.R">SCRIPT</a></p>
+<pre class="r"><code>#Opciones para correr el documento (No es necesario correr esta linea)
+knitr::opts_chunk$set(warning = F, message = F, echo = F)
+# Librerias que usamos
+library(sf)
+library(ggplot2)
+library(tmap)
+library(earlyR)
+library(EpiEstim)
+library(incidence)
+library(dplyr)
+library(ggpubr)
+# Cargar los datos (ver script sobre como se obtuvieron)
+Cases_Estado &lt;- read.csv(&quot;Data/CasesEst.csv&quot;) %&gt;%
+  mutate(Fecha = as.Date(Fecha, &quot;%Y-%m-%d&quot;))
+#####
+# Crear las series temporales por estado:
+Cases_Estado %&gt;%
+  filter(I &gt; 0) %&gt;%
+  ggplot(., aes(x = Fecha)) +
+  geom_line(aes(y = I), color = &quot;darkred&quot;) +
+  geom_line(aes(y = L), color = &quot;red&quot;) +
+  facet_wrap(~Code, ncol = 4) +
+  ylab(&quot;Numero de casos&quot;) +
+  theme(legend.position = &quot;left&quot;, 
+          strip.text.y = element_text(size=4))
+###############
+# Obtener un resumen de la mortalidad y proporcion de casos locales
+Estados_sum &lt;- Cases_Estado %&gt;%
+  group_by(Estado) %&gt;%
+  summarise_at(.vars = c(&quot;Total_I&quot;, &quot;I&quot;, &quot;D&quot;, &quot;L&quot;, &quot;S&quot;, &quot;R&quot;), .funs = ~max(., na.rm = T)) %&gt;%
+  mutate(mortalidad = D/Total_I, p_Locales = L/Total_I) %&gt;%
+  arrange(desc(Total_I))
+###################
+# Cargar un mapa de Mexico
+Mex1 &lt;- readRDS(&quot;Data/gadm36_MEX_1_sp.rds&quot;) %&gt;%
+  st_as_sf() %&gt;%
+  select(NAME_1) %&gt;%
+  mutate(NAME_1 = iconv(gsub(pattern = &quot;DISTRITO FEDERAL&quot;, 
+                             replacement = &quot;CIUDAD DE MÉXICO&quot;, 
+                             toupper(NAME_1)), 
+                        from = &quot;UTF-8&quot;, 
+                        to = &quot;ASCII//TRANSLIT&quot;)) %&gt;%
+  rename(Estado = NAME_1)
+######
+# Crear paleta de colores para el mapa
+colpal &lt;- grDevices::colorRampPalette(colors = c(&quot;black&quot;, &quot;gold3&quot;))(5)
+#####
+# Unir la base de datos con el codigo del estado
+MapDF &lt;- Mex1 %&gt;%
+  left_join(Estados_sum, by = &quot;Estado&quot;)
+#####
+# Crear el mapa de proporcion de casos locales detectados
+tm_shape(MapDF) +
+  tm_polygons(col = &quot;p_Locales&quot;, style = &quot;jenks&quot;, palette = colpal[-1], colorNA = colpal[1], border.col = &quot;black&quot;) +
+  tm_layout(frame = F, legend.outside = T, legend.outside.position = &quot;right&quot;, main.title = &quot;Proporcion de Casos Locales por Estado&quot;) 
+#####
+# Crear graficos de casos cumulativos totales por estado
+Cases_Estado %&gt;%
+  filter(Total_I &gt; 0) %&gt;%
+  group_by(Code) %&gt;%
+  mutate(Total = max(Total_I)) %&gt;%
+  arrange(desc(Total), Fecha) %&gt;% 
+  mutate(Code_f = factor(Code, levels = unique(.$Code))) %&gt;%
+  ggplot(aes(Fecha, Total_I, fill = Total)) +
+  geom_bar(stat = &quot;identity&quot;) +
+  scale_fill_gradient(low = &quot;black&quot;, high = &quot;red&quot;) +
+  ylab(&quot;Total de Infectados&quot;) +
+  theme_minimal() +
+  facet_grid(Code_f ~., scales=&quot;free_y&quot;)
+#####
+# Crear mapa de mortalidad
+colpal &lt;- grDevices::colorRampPalette(colors = c(&quot;black&quot;, &quot;red&quot;))(5)
+tm_shape(MapDF) +
+  tm_polygons(col = &quot;mortalidad&quot;, style = &quot;jenks&quot;, palette = colpal[-1], colorNA = colpal[1], border.col = &quot;black&quot;) +
+  tm_layout(frame = F, legend.outside = T, legend.outside.position = &quot;right&quot;, title = &quot;Mortalidad reportada por Estado&quot;)
+#####
+#Funcion para calcular Re y graficar la linea de tiempo
+Plot_UI_R &lt;- function(Est, color){
+  Est_I &lt;- Cases_Estado %&gt;%
+    group_by(Estado) %&gt;%
+    mutate(local = lead(L), 
+           local = lag(local - L),
+           local = ifelse(is.na(local), L, local),
+           imported = lead(I), 
+           imported = lag(imported - I),
+           imported = ifelse(is.na(imported), I, imported)) %&gt;%
+    filter(Estado == Est) %&gt;% data.frame() %&gt;%
+  mutate(cs = cumsum(local) + cumsum((imported))) %&gt;%
+  filter(cs &gt; 0) %&gt;%
+  select(Fecha, local, imported) %&gt;%
+  estimate_R(., method=&quot;uncertain_si&quot;,
+                                config = make_config(list(
+                                  mean_si = 7.5, std_mean_si = 2.0,
+                                  min_mean_si = 1, max_mean_si = 8.4,
+                                  std_si = 3.4, std_std_si = 1.0,
+                                  min_std_si = 0.5, max_std_si = 4.0,
+                                  n1 = 1000, n2 = 1000))) %&gt;%
+  .$R %&gt;%
+  select(Fecha = t_start, M = `Mean(R)`, Q1 = `Quantile.0.025(R)`, Q3 = `Quantile.0.75(R)`) %&gt;%
+  ggplot(., aes(x = Fecha)) +
+  geom_ribbon(aes(ymin = Q1, ymax = Q3), fill = color, alpha = 0.2) +
+  geom_line(aes(y = M), col = color, lwd = 1) +
+  geom_hline(yintercept = 1, linetype = &quot;dashed&quot;) +
+  # lims(y = c(-1, 15)) +
+  labs(title = paste(&quot;Estimado R instantaneo - &quot;, Est)) #+
+    #theme_minimal()
+  return(Est_I)
+}
+#####
+## Graficar el Re por estado (Top 6)
+# Crear paleta de colores
+colpal &lt;- rainbow(6, v = 0.7)
+# Seleccionar los estados
+Est &lt;- as.character(Estados_sum$Estado[1:6])
+# Guardar los resultados en objetos
+CMX &lt;- Plot_UI_R(Est = Est[1], color = colpal[1])
+MEX &lt;- Plot_UI_R(Est = Est[2], color = colpal[2])
+JAL &lt;- Plot_UI_R(Est = Est[3], color = colpal[3])
+PUE &lt;- Plot_UI_R(Est = Est[4], color = colpal[4])
+NLE &lt;- Plot_UI_R(Est = Est[5], color = colpal[5])
+YUC &lt;- Plot_UI_R(Est = Est[6], color = colpal[6])
+# Poner todos los objetos en una sola figura
+Fig &lt;- ggarrange(CMX, MEX, JAL, PUE, NLE, YUC, nrow = 2, ncol = 3)
+# Graficar los objetos con un titulo
+annotate_figure(Fig, top = text_grob(&quot;R0 Instantaneo para los estados con mayor casos&quot;, size = 25, face = &quot;bold&quot;))</code></pre>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
