@@ -10,7 +10,7 @@ navbar:
   left:
   - text: Home
     href: index.html
-  - text: Quien es Pablo?
+  - text: Que es un Pablo?
     href: https://jpablo91.github.io/
     
   - text: Contact
