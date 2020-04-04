@@ -36,3 +36,4 @@ Cases <- Cases %>%
 
 write.csv(Cases, "Data/CasosTot.csv", row.names = F)
 
+
