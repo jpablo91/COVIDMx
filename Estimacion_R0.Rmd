@@ -31,7 +31,7 @@ Infected <- COVID %>%
   pull(cum_confirm)
 
 # Poblacion actual de Mexico
-N <- 1289327530
+N <- 128932753
 
 # Dias desde el comienzo
 Day <- 1:(length(Infected))
