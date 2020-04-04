@@ -15,8 +15,16 @@ library(incidence)
 library(dplyr)
 library(ggpubr)
 # Cargar los datos (ver script sobre como se obtuvieron)
-Cases_Estado <- read.csv("Data/CasesEst.csv") %>%
-  mutate(Fecha = as.Date(Fecha, "%Y-%m-%d"))
+Cases_Estado <- read.csv("Data/CasesEst.csv", stringsAsFactors = F) %>%
+  mutate(Fecha = as.Date(Fecha, "%Y-%m-%d")) %>%
+  group_by(Estado) %>%
+    mutate(local = lead(L), 
+           local = lag(local - L),
+           local = ifelse(is.na(local), L, local),
+           imported = lead(I), 
+           imported = lag(imported - I),
+           imported = ifelse(is.na(imported), I, imported)) %>%
+  data.frame()
 ```
 
 En el [post anterior](Estimacion_R0.html) examinamos como obtener el $R_0$ utilizando modelos compartamentales SIR, lo cual nos puede ayudar a estimar el impacto de la epidemia.  
@@ -48,7 +56,7 @@ Podemos notar como en algunos estados como San Luis, Puebla y Jalisco los casos 
 ```{r}
 ###############
 # Obtener un resumen de la mortalidad y proporcion de casos locales
-Estados_sum <- Cases_Estado %>%
+Estados_sum <- Cases_Estado %>% 
   group_by(Estado) %>%
   summarise_at(.vars = c("Total_I", "I", "D", "L", "S", "R"), .funs = ~max(., na.rm = T)) %>%
   mutate(mortalidad = D/Total_I, p_Locales = L/Total_I) %>%
@@ -113,6 +121,8 @@ tm_shape(MapDF) +
 # Estimacion de $R_0$ 
 
 Como lo discutimos en el post anterior, un indicador que nos ayuda a estimar la magnitud de las epidemias es el numero $R_0$, el cual representa el numero de casos secundarios producidos. Anteriormente calculamos un $R_0$ para todo el periodo de la epidemia, lo cual nos da una idea de la magnitud de una manera global. Similar a $R_0$, existe otro indicador de el numero de casos secundarios para el dia-a-dia ($R_e$), esto nos puede ayudar a darle un seguimiento temporal a el impacto de la enfermedad. Existen varios metodos para calcular $R_e$, a continuacion usaremos un metodo desarrollado por Anne Cori y extendido posteriormente por [Thompson et al.](https://www.sciencedirect.com/science/article/pii/S1755436519300350?via%3Dihub). Para esto utilizaremos el paquete de R `EpiEstim`.  Uno de los principales parametros para estimar $R_e$ es el el intervalo serial (SI), el cual es el tiempo entre el inicio de los sintomas de cada caso y el incio de los sintomas de un caso secundario a este (en otras palabras es el tiempo entre casos). Tomaremos la distribucion de SI descrita por [Li et. al](https://www.nejm.org/doi/full/10.1056/NEJMoa2001316), en la cual se estimo una media de 7.5 dias con una desviacion estandard de 3.4 dias. Dado que aun desconocemos muchos aspectos de la enfermedad, introduciremos algunos parametros adicionales para permitir que el parametro SI tenga una variacion entre 2.3 y 8.4 usando una distribucion estandard con $\sigma = 2$.  
+
+**Ojo, este metodo esta basado en la transmision local, los datos que uso aqui son los reportados como transmision local**  
   
 
 
@@ -120,6 +130,7 @@ Como lo discutimos en el post anterior, un indicador que nos ayuda a estimar la 
 #####
 #Funcion para calcular Re y graficar la linea de tiempo
 Plot_UI_R <- function(Est, color){
+  Est <- "JALISCO"
   Est_I <- Cases_Estado %>%
     group_by(Estado) %>%
     mutate(local = lead(L), 
@@ -134,8 +145,8 @@ Plot_UI_R <- function(Est, color){
   select(Fecha, local, imported) %>%
   estimate_R(., method="uncertain_si",
                                 config = make_config(list(
-                                  mean_si = 7.5, std_mean_si = 2.0,
-                                  min_mean_si = 1, max_mean_si = 8.4,
+                                  mean_si = 8.5, std_mean_si = 2.0,
+                                  min_mean_si = 5, max_mean_si = 14,
                                   std_si = 3.4, std_std_si = 1.0,
                                   min_std_si = 0.5, max_std_si = 4.0,
                                   n1 = 1000, n2 = 1000))) %>%
@@ -154,29 +165,70 @@ Plot_UI_R <- function(Est, color){
 
 En nuestrso resultados podemos observar el $R_e$ estimado en una linea del tiempo. Como mencionamos anteriormente, el objetivo para evitar que una enfermedad se convierta en epidemia es mantener el $R_e$ por debajo de uno (el cual esta marcado con una linea punteada). La linea de enmedio representa nuestra estimacion y el sombreado que la envelve es la incertidumbre de nuestra estimacion (nuestro verdadero valor podria estar en cualquier parte del area sombreada). Es importante destacar que los ejes estan en diferentes escalas, podemos que aunque el patron para Puebla y el Estado de Mexico es parecido, los valores para el Estado de Mexico podrian alcanzar hasta un $R_e$ de 6.       
 
-```{r fig.height=8, fig.width=14}
-#####
-## Graficar el Re por estado (Top 6)
-# Crear paleta de colores
-colpal <- rainbow(6, v = 0.7)
-# Seleccionar los estados
-Est <- as.character(Estados_sum$Estado[1:6])
-# Guardar los resultados en objetos
-CMX <- Plot_UI_R(Est = Est[1], color = colpal[1])
-MEX <- Plot_UI_R(Est = Est[2], color = colpal[2])
-JAL <- Plot_UI_R(Est = Est[3], color = colpal[3])
-PUE <- Plot_UI_R(Est = Est[4], color = colpal[4])
-NLE <- Plot_UI_R(Est = Est[5], color = colpal[5])
-YUC <- Plot_UI_R(Est = Est[6], color = colpal[6])
-# Poner todos los objetos en una sola figura
-Fig <- ggarrange(CMX, MEX, JAL, PUE, NLE, YUC, nrow = 2, ncol = 3)
-# Graficar los objetos con un titulo
-annotate_figure(Fig, top = text_grob("R0 Instantaneo para los estados con mayor casos", size = 25, face = "bold"))
+```{r fig.height=10, fig.width=15}
+#Funcion para calcular Re
+Plot_UI_R <- function(Est){
+  Est_I <- Cases_Estado %>%
+    group_by(Estado) %>%
+    mutate(local = lead(L), 
+           local = lag(local - L),
+           local = ifelse(is.na(local), L, local),
+           imported = lead(I), 
+           imported = lag(imported - I),
+           imported = ifelse(is.na(imported), I, imported)) %>%
+    filter(Estado == Est) %>% data.frame() %>%
+    filter(Total_I > 0)
+    
+  Fechas_i <- Est_I %>%
+    mutate(i = 1:n()) %>%
+    select(Fecha, i)
+    
+  R_i <- Est_I %>%
+    select(Fecha, local, imported) %>%
+    estimate_R(., method="uncertain_si",
+                                config = make_config(list(
+                                  mean_si = 8.5, std_mean_si = 2.0,
+                                  min_mean_si = 5, max_mean_si = 14,
+                                  std_si = 3.4, std_std_si = 1.0,
+                                  min_std_si = 0.5, max_std_si = 4.0,
+                                  n1 = 1000, n2 = 1000))) %>%
+    .$R %>%
+    left_join(Fechas_i, by = c("t_end" = "i")) %>%
+    mutate(Estado = Est)
+  
+  return(R_i)
+}
+
+# Correr la funcion para los primeros 9 estados
+R_L <- lapply(Estados_sum$Estado[1:9], Plot_UI_R) %>%
+  do.call(rbind, .)
+
+# Graficar el resultado
+R_L %>%
+  select(Fecha, M = `Mean(R)`, Q1 = `Quantile.0.025(R)`, Q3 = `Quantile.0.75(R)`, Estado) %>%
+  ggplot(., aes(x = Fecha)) +
+  geom_ribbon(aes(ymin = Q1, ymax = Q3, fill = Estado), alpha = 0.3) +
+  geom_line(aes(y = M, col = Estado), lwd = 1) +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  ylab("Re") +
+  ggtitle(label = "Estados con mayor numero de casos Reportados", subtitle = paste("Ultima Actualizacion:", Sys.Date())) +
+  facet_wrap(~Estado, ncol = 3, scales = "free_y") +
+  theme(legend.position = "n",
+        strip.text.x = element_text(size = 10, face = "bold", color = "grey90"),
+        strip.background = element_rect(color="black", fill="grey20", size=1.5, linetype="solid"))
 ```
 
-Suponiendo que el numero de casos reportados refleja con certeza la progresion de la enfermedad, nuestro analisis nos dice que la enfermedad va decreciendo en estados como Nuevo Leon, Jalisco y Yucatan. Para los estados de Nuevo Leon y Jalisco el $R_e$ se mantiene por debajo de la linea que marca el 1 y se debe mantener asi si queremos eliminar la transmision. En cambio en CDMX, estado de Mexico y Puebla vemos que hubo una decaida en el $R_e$ y ha vuelto a aumentaren los ultimos dias, recordemos que este analiss esta basado en el numero de individuos detectados y no necesariamente el numero total de infectados. El hecho de que el $R_e$ vaya en aumento, tambien podria reflejar el incremento en los esfuerzos de deteccion de la enfermedad.  
+Suponiendo que el numero de casos reportados refleja con certeza la progresion de la enfermedad, nuestro analisis nos muestra que estados van en asencion en cuanto a la transmision y en cuales va decreciendo. Quiero destacar que existe mucha incertidumbre en varios de los estados, lo cual nos da una idea del posible valor de R0 pero es dificil estimar un numero en concreto.  
+
+Para los estados de Nuevo Leon y Jalisco se aprecia que el $R_e$ ha decrecido en los ultimos dias hasta llegar cerca de la linea que marca el 1 y se debe mantener asi si queremos eliminar la transmision local. No hay que confiarze de este gráfico y pensar que la epidemia ya esta controlada en Jalisco y NL, dado al tipo de muestreo que se esta llevando a cabo podría estar subestimando el numero de casos.  
+
+Unos de los estados que mas destacan son Coahuila y Tabasco, ya que en los ultimos dias la incertidumbre llega hasta calcular un R0 de casi 30 y 15 respectivamente, lo cual es demasiado. Habria que examinar los datos mas a detalle para ver que es lo que esta pasando. Recordemos que este analiss esta basado en el numero de individuos detectados y no necesariamente el numero total de infectados. El hecho de que el $R_e$ vaya en aumento, tambien podria reflejar el incremento en los esfuerzos de deteccion de la enfermedad.  
+
   
-En resumen, algunas de estas herramientas podrian ser utilizadas para informar los lugares en los que la enfermedad va en asenso y otros lugares que necesitan mas esfuerzos en cuanto a la deteccion de la enfermedad.  
+En resumen, algunas de estas herramientas podrian ser utilizadas para informar los lugares en los que la enfermedad va en asenso y otros lugares que necesitan mas esfuerzos en cuanto a la deteccion de la enfermedad. Estas estimaciones podrian ser mucho mas acertadas con datos mas certeros sobre los el numero de infectados, ya que una de las principales prioridades en cuanto al muestreo es muestrear a aquellos que tuvieron historial de viaje o contato con viajeros, lo cual solo tendera a incrementara el numero de infectados importados y no los locales, el cual muy bien podria ser el caso de Jalisco y NL.   
+
+
+
 
 # Apendice  
 Por ultimo, anexo el codigo por si se desea replicar el analisis. El codigo a continuacion describe lo realizado en este post y para acceder a los datos y darles el formato necesario en este analisis se puede seguir el codigo que se encuentra en este [SCRIPT](Code/Get_the_data.R)

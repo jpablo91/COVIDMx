@@ -1,15 +1,20 @@
 ---
-title: "HOME"
+title: "COVID-19 En Mexico"
 ---
+
+Dada la situacion actual de COVID 19, he realizado unos ejercicios que muestran como podemos evaluar el progreso de la enfermedad en Mexico.Tratare de mantener el codigo actualizado con los datos mas recientes.    
+
+La [parte I](Estimacion_R0.html) consiste en una introduccion basica a modelos compartamentales y muestra como obtener el parametro de $R_0$.  
+La [parte II](Estimaciones_R_Instantaneo.html) entra mas en detalle en el parametro $R_0$ y muestra una aproximacion para calcularlo en una serie temporal.  
+  
+Cualquier duda o comentario no duden en contactarme y recuerden seguir las recomendaciones de su país.   
+  
 
 <div class="index-main">
   <div class="main-photo"><img src="Images/LogoNB.png"></div>
   <div id="main-text">
   <div class="inner-text">
-  <!-- <h4>PhD Epidemiology</h4> -->
-  <!-- <h5>Center for Animal Disease Modeling and Surveillance</h5> -->
-  <!-- <h5>Veterinary Medicine and Epidemiology</h5> -->
-  <!-- <h5>UC Davis</h5> -->
   </div>
   </div>
 </div>
+
